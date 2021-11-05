@@ -198,7 +198,7 @@ pub struct Format {
     pub format_long_name: String,
     pub start_time: Option<String>,
     pub duration: Option<String>,
-    pub size: String,
+    pub size: Option<String>,
     pub bit_rate: Option<String>,
     pub probe_score: i64,
     pub tags: Option<FormatTags>,
