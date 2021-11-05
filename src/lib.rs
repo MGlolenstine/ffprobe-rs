@@ -40,6 +40,36 @@ pub fn ffprobe(path: impl AsRef<std::path::Path>) -> Result<FfProbe, FfProbeErro
     serde_json::from_slice::<FfProbe>(&out.stdout).map_err(FfProbeError::Deserialize)
 }
 
+use std::io::Write;
+use std::process::Stdio;
+
+/// Same as the above, but accepts a stream of bytes
+pub fn ffprobe_stream(bytes: &[u8]) -> Result<FfProbe, FfProbeError> {
+    let mut out = std::process::Command::new("ffprobe")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .args(&[
+            "-v",
+            "quiet",
+            "-show_format",
+            "-show_streams",
+            "-print_format",
+            "json",
+            "-",
+        ])
+        .spawn()
+        .map_err(FfProbeError::Io)?;
+
+    let mut into_out = out.stdin.take().expect("Failed to take stdin!");
+    into_out.write_all(bytes).expect("Failed to write bytestream to stdin");
+    let status = out.wait_with_output().unwrap();
+    if !status.status.success() {
+        return Err(FfProbeError::Status(status));
+    }
+
+    serde_json::from_slice::<FfProbe>(&status.stdout).map_err(FfProbeError::Deserialize)
+}
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum FfProbeError {
